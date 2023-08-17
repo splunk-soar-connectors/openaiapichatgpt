@@ -187,7 +187,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         if len(response.data) < 20:
             ret_val = phantom.APP_ERROR
         else:
-            self.save_progress("Count of Models available is %s." %(str(len(response.data))))
+            self.save_progress("Count of Models available is %s." % (str(len(response.data))))
             ret_val = phantom.APP_SUCCESS
 
         if phantom.is_fail(ret_val):
@@ -223,9 +223,9 @@ class OpenaiChatgptApiConnector(BaseConnector):
         )
         moderation = response['results']
         if len(moderation) < 1:
-                ret_val = phantom.APP_ERROR
+            ret_val = phantom.APP_ERROR
         else:
-                ret_val = phantom.APP_SUCCESS
+            ret_val = phantom.APP_SUCCESS
 
         if phantom.is_fail(ret_val):
             # the call to the 3rd party device or service failed, action result should contain all the error details
@@ -271,7 +271,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         if len(response.data) < 1:
             ret_val = phantom.APP_ERROR
         else:
-            self.save_progress("Count of Models available is %s." %(str(len(response.data))))
+            self.save_progress("Count of Models available is %s." % (str(len(response.data))))
             ret_val = phantom.APP_SUCCESS
 
         if phantom.is_fail(ret_val):
@@ -294,7 +294,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         return action_result.set_status(ret_val)
 
         # For now return Error with a message, in case of success we don't set the message, but use the summary
-        #return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
+        # return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
 
     def _handle_get_chat_completion(self, param):
         # Implement the handler here
@@ -320,7 +320,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
             ]
         )
         response = completion.choices[0].message
-        if len(response)<1:
+        if len(response) < 1:
             ret_val = phantom.APP_ERROR
         else:
             ret_val = phantom.APP_SUCCESS
@@ -345,7 +345,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         return action_result.set_status(ret_val)
 
         # For now return Error with a message, in case of success we don't set the message, but use the summary
-        #return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
+        # return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
 
     def _handle_get_edits(self, param):
         # Implement the handler here
@@ -371,11 +371,10 @@ class OpenaiChatgptApiConnector(BaseConnector):
             instruction=instructions
         )
         response = edit.choices[0]
-        if len(response)<1:
+        if len(response) < 1:
             ret_val = phantom.APP_ERROR
         else:
             ret_val = phantom.APP_SUCCESS
-
 
         if phantom.is_fail(ret_val):
             # the call to the 3rd party device or service failed, action result should contain all the error details
@@ -397,7 +396,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         return action_result.set_status(ret_val)
 
         # For now return Error with a message, in case of success we don't set the message, but use the summary
-        #return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
+        # return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
 
     def _handle_get_completion(self, param):
         # Implement the handler here
@@ -421,7 +420,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
             prompt=input,
         )
         response = completion.choices[0]
-        if len(response)<1:
+        if len(response) < 1:
             ret_val = phantom.APP_ERROR
         else:
             ret_val = phantom.APP_SUCCESS
@@ -446,7 +445,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         return action_result.set_status(ret_val)
 
         # For now return Error with a message, in case of success we don't set the message, but use the summary
-        #return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
+        # return action_result.set_status(phantom.APP_ERROR, "Action not yet implemented")
 
     def handle_action(self, param):
         ret_val = phantom.APP_SUCCESS
