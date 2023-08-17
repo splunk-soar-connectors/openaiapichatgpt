@@ -1,23 +1,33 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# -----------------------------------------
-# Phantom sample App Connector python file
-# -----------------------------------------
+# File: openaichatgptapi_connector.py
+#
+# Copyright (c) 2023 Splunkable, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
 
-# Python 3 Compatibility imports
 from __future__ import print_function, unicode_literals
 
+import json
+
+import openai
 # Phantom App imports
 import phantom.app as phantom
-from phantom.base_connector import BaseConnector
+import requests
+from bs4 import BeautifulSoup
 from phantom.action_result import ActionResult
+from phantom.base_connector import BaseConnector
 
 # Usage of the consts file is recommended
-# from openaichatgptapi_consts import *
-import requests
-import json
-from bs4 import BeautifulSoup
-import openai
+import openaichatgptapi_consts as consts
+
 
 class RetVal(tuple):
 
@@ -40,13 +50,13 @@ class OpenaiChatgptApiConnector(BaseConnector):
         self._base_url = None
 
     def _process_empty_response(self, response, action_result):
-        if response.status_code == 200:
+        if response.status_code in [200, 204]:
             return RetVal(phantom.APP_SUCCESS, {})
 
         return RetVal(
             action_result.set_status(
-                phantom.APP_ERROR, "Empty response and no information in the header"
-            ), None
+                phantom.APP_ERROR, "Empty response and no information in the header, "
+                                   "Status code: {}".format(response.status_code)), None
         )
 
     def _process_html_response(self, response, action_result):
@@ -55,6 +65,9 @@ class OpenaiChatgptApiConnector(BaseConnector):
 
         try:
             soup = BeautifulSoup(response.text, "html.parser")
+            # Remove the script, style, footer and navigation part from the HTML message
+            for element in soup(["script", "style", "footer", "nav"]):
+                element.extract()
             error_text = soup.text
             split_lines = error_text.split('\n')
             split_lines = [x.strip() for x in split_lines if x.strip()]
@@ -64,7 +77,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
 
         message = "Status Code: {0}. Data from server:\n{1}\n".format(status_code, error_text)
 
-        message = message.replace(u'{', '{{').replace(u'}', '}}')
+        message = message.replace('{', '{{').replace('}', '}}')
         return RetVal(action_result.set_status(phantom.APP_ERROR, message), None)
 
     def _process_json_response(self, r, action_result):
@@ -85,7 +98,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         # You should process the error returned in the json
         message = "Error from server. Status Code: {0} Data from server: {1}".format(
             r.status_code,
-            r.text.replace(u'{', '{{').replace(u'}', '}}')
+            r.text.replace('{', '{{').replace('}', '}}')
         )
 
         return RetVal(action_result.set_status(phantom.APP_ERROR, message), None)
@@ -138,7 +151,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
             )
 
         # Create a URL to connect to
-        url = self._base_url + endpoint
+        url = f'{self._base_url}{endpoint}'
 
         try:
             r = request_func(
@@ -176,7 +189,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         else:
             self.save_progress("Count of Models available is %s." %(str(len(response.data))))
             ret_val = phantom.APP_SUCCESS
-            
+
         if phantom.is_fail(ret_val):
             # the call to the 3rd party device or service failed, action result should contain all the error details
             # for now the return is commented out, but after implementation, return from here
@@ -295,7 +308,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
         systeminput = param['system_input']
         userinput = param['user_input']
         model = param['model']
-        
+
         # Query OpenAI-API
         config = self.get_config()
         openai.api_key = config.get("API Key")
@@ -311,7 +324,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
             ret_val = phantom.APP_ERROR
         else:
             ret_val = phantom.APP_SUCCESS
-        
+
         if phantom.is_fail(ret_val):
             # the call to the 3rd party device or service failed, action result should contain all the error details
             # for now the return is commented out, but after implementation, return from here
@@ -362,7 +375,7 @@ class OpenaiChatgptApiConnector(BaseConnector):
             ret_val = phantom.APP_ERROR
         else:
             ret_val = phantom.APP_SUCCESS
-        
+
 
         if phantom.is_fail(ret_val):
             # the call to the 3rd party device or service failed, action result should contain all the error details
@@ -501,12 +514,14 @@ def main():
     argparser.add_argument('input_test_json', help='Input Test JSON file')
     argparser.add_argument('-u', '--username', help='username', required=False)
     argparser.add_argument('-p', '--password', help='password', required=False)
+    argparser.add_argument('-v', '--verify', action='store_true', help='verify', required=False, default=False)
 
     args = argparser.parse_args()
     session_id = None
 
     username = args.username
     password = args.password
+    verify = args.verify
 
     if username is not None and password is None:
 
@@ -519,7 +534,7 @@ def main():
             login_url = OpenaiChatgptApiConnector._get_phantom_base_url() + '/login'
 
             print("Accessing the Login page")
-            r = requests.get(login_url, verify=False)
+            r = requests.get(login_url, verify=verify, timeout=consts.OPENAICHATGPT_TIMEOUT)
             csrftoken = r.cookies['csrftoken']
 
             data = dict()
@@ -532,7 +547,7 @@ def main():
             headers['Referer'] = login_url
 
             print("Logging into Platform to get the session id")
-            r2 = requests.post(login_url, verify=False, data=data, headers=headers)
+            r2 = requests.post(login_url, verify=verify, data=data, headers=headers, timeout=consts.OPENAICHATGPT_TIMEOUT)
             session_id = r2.cookies['sessionid']
         except Exception as e:
             print("Unable to get session id from the platform. Error: " + str(e))
